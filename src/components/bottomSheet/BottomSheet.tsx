@@ -808,7 +808,12 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
           animatedHandleGestureState.value !== State.ACTIVE
         ) {
           isInTemporaryPosition.value = false;
-          const nextPosition = detents[currentIndex];
+          // return the previously active detent position when available,
+          // otherwise fall back to the first detent
+          const nextPosition =
+          currentIndex >= 0 && detents && currentIndex < detents.length
+          ? detents[currentIndex]
+          : detents[_providedIndex];
           return nextPosition;
         }
 
