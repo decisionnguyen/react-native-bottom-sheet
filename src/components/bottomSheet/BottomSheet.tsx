@@ -841,6 +841,27 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
         }
 
         /**
+         * if the keyboard is shown and the sheet is in temporary position (above keyboard),
+         * and we're handling a snap point change, recalculate position to stay above keyboard.
+         * This handles the case when content height changes while keyboard is visible.
+         * IMPORTANT: This must come BEFORE the general keyboard shown check to handle snap point changes.
+         */
+        if (
+          keyboardBehavior === KEYBOARD_BEHAVIOR.interactive &&
+          keyboardStatus === KEYBOARD_STATUS.SHOWN &&
+          isInTemporaryPosition.value &&
+          source === ANIMATION_SOURCE.SNAP_POINT_CHANGE &&
+          !(
+            Platform.OS === 'android' &&
+            android_keyboardInputMode === 'adjustResize'
+          )
+        ) {
+          const keyboardHeightInContainer =
+            animatedKeyboardState.get().heightWithinContainer;
+          return Math.max(0, highestDetentPosition - keyboardHeightInContainer);
+        }
+
+        /**
          * if the keyboard appearance behavior is interactive and keyboard is shown,
          * then we return the heights points minus the keyboard in container height.
          */
@@ -1005,8 +1026,15 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
            * restart the animation.
            */
           if (nextPositionIndex !== animatedCurrentIndex.value) {
+            // If keyboard is shown and we're in temporary position, use the proposed position
+            // which includes keyboard offset, instead of the raw detent position
+            const targetPosition = 
+              isInTemporaryPosition.value && source === ANIMATION_SOURCE.SNAP_POINT_CHANGE
+                ? proposedPosition
+                : detents[nextPositionIndex];
+            
             animateToPosition(
-              detents[nextPositionIndex],
+              targetPosition,
               source,
               undefined,
               animationConfigs
